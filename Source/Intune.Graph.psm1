@@ -1698,16 +1698,20 @@ function Backup-IntuneConfigurationProfile
 function Get-IntunePublishedApps {
     [cmdletbinding()]
     param (
-        [Parameter(Mandatory = $false,ParameterSetName = "NameSearch")]
+        [Parameter(Mandatory = $false, ParameterSetName = "NameSearch")]
         [Switch]$NameSearch,
-        [Parameter(Mandatory = $false,ParameterSetName = "NameSearch")]
+        [Parameter(Mandatory = $false, ParameterSetName = "NameSearch")]
         [string]$Name,
-        [Parameter(Mandatory = $false,ParameterSetName = "All")]
+        [Parameter (Mandatory = $false, ParameterSetName = "IDSearch")]
+        [switch]$IDSearch,
+        [Parameter (Mandatory = $false, ParameterSetName = "IDSearch")]
+        [string]$ID,
+        [Parameter(Mandatory = $false, ParameterSetName = "All")]
         [switch]$All
     )
-    begin{
+    begin {
         $appURI = "https://graph.microsoft.us/beta/deviceAppManagement/mobileApps"
-        Connect-MgGraph -Environment usgov |Out-Null
+        Connect-MgGraph -Environment usgov | Out-Null
     }
     process {
         $Apps = Invoke-MgGraphRequest -Method Get -Uri $appURI -ErrorAction Stop 
@@ -1716,22 +1720,22 @@ function Get-IntunePublishedApps {
             $apps = $Apps.value
             foreach ($App in $Apps) {
                 [pscustomobject]@{
-                    publishedState = $App.publishingState
-                    roleScopeTagIds = $App.roleScopeTagIds
-                    ID = $App.ID
-                    Name = $App.displayName
-                    Description = $App.description
-                    Publisher = $App.publisher
-                    Version = $App.displayVersion
-                    CreatedDateTime = $App.createdDateTime
+                    publishedState       = $App.publishingState
+                    roleScopeTagIds      = $App.roleScopeTagIds
+                    ID                   = $App.ID
+                    Name                 = $App.displayName
+                    Description          = $App.description
+                    Publisher            = $App.publisher
+                    Version              = $App.displayVersion
+                    CreatedDateTime      = $App.createdDateTime
                     LastModifiedDateTime = $App.lastModifiedDateTime
-                    IsFeatured = $App.isFeatured
-                    IsAssigned = $App.isAssigned
-                    IsBlocked = $App.isBlocked
-                    IsBundle = $App.isBundle
+                    IsFeatured           = $App.isFeatured
+                    IsAssigned           = $App.isAssigned
+                    IsBlocked            = $App.isBlocked
+                    IsBundle             = $App.isBundle
                     #IsCommitted = $App.isCommitted
                     #IsLineOfBusiness = $App.isLineOfBusiness
-                    IsSuperseded = $App.isSuperseded
+                    IsSuperseded         = $App.isSuperseded
                 }
             }
     
@@ -1740,18 +1744,18 @@ function Get-IntunePublishedApps {
 
         if ($NameSearch) {
             
-            $Single = $Apps.value | Where-Object {$_.displayName -eq "$Name"}
+            $Single = $Apps.value | Where-Object { $_.displayName -eq "$Name" }
             
-            if ($null -eq $Single){
-                    Write-Error "No App with the name '$Name' was found"
-                    return
+            if ($null -eq $Single) {
+                Write-Error "No App with the name '$Name' was found"
+                return
             }
             
             #$Single = $Single |Select-Object -expandProperty Value
-            $app=$Single
+            $app = $Single
             $appID = $app.id
             $appURI = "https://graph.microsoft.us/beta/deviceAppManagement/mobileApps/$appID"
-            Connect-MgGraph -Environment usgov |Out-Null
+            Connect-MgGraph -Environment usgov | Out-Null
             $app = Invoke-MgGraphRequest -Method Get -Uri "$appuri" -ErrorAction Stop
             #$app = $app |Select-Object -expandProperty Values
             foreach ($A in $App) {
@@ -1842,7 +1846,7 @@ function Get-IntunePublishedApps {
                     "#microsoft.graph.win32LobApp" { "Win32 Line of Business App" }
                     "#microsoft.graph.windowsUniversalApp" { "Windows Universal App" }
                     "#microsoft.graph.windowsStoreForBusinessApp" { "Windows Store for Business App" }
-                    "#microsoft.graph.windowsPhone81AppX" { "Windows Phone 8.1 AppX"}
+                    "#microsoft.graph.windowsPhone81AppX" { "Windows Phone 8.1 AppX" }
                 }
                 $supersededResult = switch ($a.isSuperseded) {
                     $true { "Superseded" }
@@ -1850,25 +1854,25 @@ function Get-IntunePublishedApps {
                     $null { "Not Superseded" }
                 }
                 $obj = [pscustomobject]@{
-                    publishedState = $pubResult
-                    roleScopeTagIds = $a.roleScopeTagIds
-                    appID = $a.ID
-                    Name = $a.displayName
-                    Description = $a.description
-                    Publisher = $a.publisher
-                    Version = $a.displayVersion
-                    CreatedDateTime = $a.createdDateTime
+                    publishedState       = $pubResult
+                    roleScopeTagIds      = $a.roleScopeTagIds
+                    appID                = $a.ID
+                    Name                 = $a.displayName
+                    Description          = $a.description
+                    Publisher            = $a.publisher
+                    Version              = $a.displayVersion
+                    CreatedDateTime      = $a.createdDateTime
                     LastModifiedDateTime = $a.lastModifiedDateTime
-                    Owner = $a.owner
-                    Notes = $a.notes
-                    AppType = $apptypeResult
-                    IsFeatured = $a.isFeatured
-                    IsAssigned = $a.isAssigned
-                    IsBlocked = $blockResult
-                    IsBundle = $bundleResult
+                    Owner                = $a.owner
+                    Notes                = $a.notes
+                    AppType              = $apptypeResult
+                    IsFeatured           = $a.isFeatured
+                    IsAssigned           = $a.isAssigned
+                    IsBlocked            = $blockResult
+                    IsBundle             = $bundleResult
                     #IsCommitted = $commitResult
                     #IsLineOfBusiness = $lineofbusinessResult
-                    IsSuperseded = $supersededResult
+                    IsSuperseded         = $supersededResult
                 }
                 if ($apptypeResult -eq "Win32 Line of Business App") {
                     $obj | Add-Member -MemberType NoteProperty -Name "Information" -Value $a.information
@@ -1889,16 +1893,170 @@ function Get-IntunePublishedApps {
                     $obj | Add-Member -MemberType NoteProperty -Name "UninstallExperience" -Value $a.uninstallExperience
                     $obj | Add-Member -MemberType NoteProperty -Name "ApplicableArchitectures" -Value $a.applicableArchitectures
                     $obj | Add-Member -MemberType NoteProperty -Name "MinimumCpuSpeedInMHz" -Value $a.minimumCpu
+                }
+                if ($apptypeResult -eq "Windows Universal AppX") {
+                    $obj | Add-Member -MemberType NoteProperty -Name "IdentityPublisherHash" -Value $a.identityPublisherHash
+                    $obj | Add-Member -MemberType NoteProperty -Name "IdentityResourceIdentifier" -Value $a.identityResourceIdentifier
+                }
+                $obj
             }
-            if ($apptypeResult -eq "Windows Universal AppX"){
-                $obj | Add-Member -MemberType NoteProperty -Name "IdentityPublisherHash" -Value $a.identityPublisherHash
-                $obj | Add-Member -MemberType NoteProperty -Name "IdentityResourceIdentifier" -Value $a.identityResourceIdentifier
+        }
+        if ($IDSearch) {
+            $Single = $Apps.value | Where-Object { $_.ID -eq "$ID" }
+            if ($null -eq $Single) {
+                Write-Error "No App with the ID '$ID' was found"
+                return
             }
-            $obj
+            $app = $Single
+            $appID = $app.id
+            $appURI = "https://graph.microsoft.us/beta/deviceAppManagement/mobileApps/$appID"
+            Connect-MgGraph -Environment usgov | Out-Null
+            $app = Invoke-MgGraphRequest -Method Get -Uri "$appuri" -ErrorAction Stop
+            #$app = $app |Select-Object -expandProperty Values
+            foreach ($A in $App) {
+                $pubResult = switch ($a.publishingState) {
+                    "notPublished" { "Not Published" }
+                    "processing" { "Processing" }
+                    "published" { "Published" }
+                    "failed" { "Failed" }
+                    "notApplicable" { "Not Applicable" }
+                    "superseded" { "Superseded" }
+                    "uninstallFailed" { "Uninstall Failed" }
+                    "pendingUninstall" { "Pending Uninstall" }
+                    "installed" { "Installed" }
+                    "installFailed" { "Install Failed" }
+                    "uninstalling" { "Uninstalling" }
+                    "pendingInstall" { "Pending Install" }
+                    "removing" { "Removing" }
+                    "pendingRemove" { "Pending Remove" }
+                    "notAssigned" { "Not Assigned" }
+                    "assignFailed" { "Assign Failed" }
+                    "assigned" { "Assigned" }
+                    "unassignFailed" { "Unassign Failed" }
+                    "assigning" { "Assigning" }
+                    "pendingAssign" { "Pending Assign" }
+                    "pendingUnassign" { "Pending Unassign" }
+                    "failedToApply" { "Failed To Apply" }
+                    "success" { "Success" }
+                    "available" { "Available" }
+                    "installing" { "Installing" }
+                    "removalFailed" { "Removal Failed" }
+                    "pendingAvailability" { "Pending Availability" }
+                    "uninstallSucceeded" { "Uninstall Succeeded" }
+                    "installSucceeded" { "Install Succeeded" }
+                    "removalSucceeded" { "Removal Succeed" }
+                    "installingDependency" { "Installing Dependency" }
+                    "dependencyFailed" { "Dependency Failed" }
+                    "dependencyInstalling" { "Dependency Installing" }
+                    "dependencyInstallSucceeded" { "Dependency Install Succeeded" }
+                    "dependencyRemovalFailed" { "Dependency Removal Failed" }
+                    "dependencyRemovalSucceeded" { "Dependency Removal Succeeded" }
+                    "dependencyUninstallSucceeded" { "Dependency Uninstall Succeeded" }
+                    "dependencyUninstalling" { "Dependency Uninstalling" }
+                    "dependencyPendingAvailability" { "Dependency Pending Availability" }
+                    "dependencyAvailable" { "Dependency Available" }
+                    "dependencyPendingInstall" { "Dependency Pending Install" }
+                    "dependencyInstallFailed" { "Dependency Install Failed" }
+                }
+                $blockResult = switch ($a.isBlocked) {
+                    $true { "Blocked" }
+                    $false { "Not Blocked" }
+                    $null { "Not Blocked" }
+                }
+                $bundleResult = switch ($a.isBundle) {
+                    $true { "Bundle" }
+                    $false { "Not Bundled" }
+                    $null { "Not Bundled" }
+                }
+                <#$commitResult = switch ($app.isCommitted) {
+            $true { "Committed" }
+            $false { "Not Committed" }
+            $null { "Not Committed" }
+        }#>
+                $apptypeResult = switch ($a."@odata.type") {
+                    "#microsoft.graph.iosLobApp" { "iOS Line of Business App" }
+                    "#microsoft.graph.managedIOSStoreApp" { "Managed iOS Store App" }
+                    "#microsoft.graph.androidLobApp" { "Android Line of Business App" }
+                    "#microsoft.graph.managedAndroidStoreApp" { "Managed Android Store App" }
+                    "#microsoft.graph.windowsMobileMSI" { "Windows Mobile MSI" }
+                    "#microsoft.graph.windowsMobileMSIEx" { "Windows Mobile MSIEx" }
+                    "#microsoft.graph.windowsMobileXAP" { "Windows Mobile XAP" }
+                    "#microsoft.graph.windowsUniversalAppX" { "Windows Universal AppX" }
+                    "#microsoft.graph.windowsUniversalAppXBundle" { "Windows Universal AppX Bundle" }
+                    "#microsoft.graph.windowsMobileAppX" { "Windows Mobile AppX" }
+                    "#microsoft.graph.windowsMobileAppXBundle" { "Windows Mobile AppX Bundle" }
+                    "#microsoft.graph.windowsUniversalAppXV2" { "Windows Universal AppX V2" }
+                    "#microsoft.graph.windowsUniversalAppXBundleV2" { "Windows Universal AppX Bundle V2" }
+                    "#microsoft.graph.windowsMobileAppXV2" { "Windows Mobile AppX V2" }
+                    "#microsoft.graph.windowsMobileAppXBundleV2" { "Windows Mobile AppX Bundle V2" }
+                    "#microsoft.graph.windowsInformationProtectionAppLockerFile" { "Windows Information Protection App Locker File" }
+                    "#microsoft.graph.windowsInformationProtectionDesktopApp" { "Windows Information Protection Desktop App" }
+                    "#microsoft.graph.windowsInformationProtectionStoreApp" { "Windows Information Protection Store App" }
+                    "#microsoft.graph.windowsInformationProtectionStoreAppV2" { "Windows Information Protection Store App V2" }
+                    "#microsoft.graph.windowsInformationProtectionWin32App" { "Windows Information Protection Win32 App" }
+                    "#microsoft.graph.windowsInformationProtectionOfficeDesktopApp" { "Windows Information Protection Office Desktop App" }
+                    "#microsoft.graph.windowsInformationProtection" { "Windows Information Protection" }
+                    "#microsoft.graph.windowsKioskApp" { "Windows Kiosk App" }
+                    "#microsoft.graph.windowsModernApp" { "Windows Modern App" }
+                    "#microsoft.graph.win32LobApp" { "Win32 Line of Business App" }
+                    "#microsoft.graph.windowsUniversalApp" { "Windows Universal App" }
+                    "#microsoft.graph.windowsStoreForBusinessApp" { "Windows Store for Business App" }
+                    "#microsoft.graph.windowsPhone81AppX" { "Windows Phone 8.1 AppX" }
+                }
+                $supersededResult = switch ($a.isSuperseded) {
+                    $true { "Superseded" }
+                    $false { "Not Superseded" }
+                    $null { "Not Superseded" }
+                }
+                $obj = [pscustomobject]@{
+                    publishedState       = $pubResult
+                    roleScopeTagIds      = $a.roleScopeTagIds
+                    appID                = $a.ID
+                    Name                 = $a.displayName
+                    Description          = $a.description
+                    Publisher            = $a.publisher
+                    Version              = $a.displayVersion
+                    CreatedDateTime      = $a.createdDateTime
+                    LastModifiedDateTime = $a.lastModifiedDateTime
+                    Owner                = $a.owner
+                    Notes                = $a.notes
+                    AppType              = $apptypeResult
+                    IsFeatured           = $a.isFeatured
+                    IsAssigned           = $a.isAssigned
+                    IsBlocked            = $blockResult
+                    IsBundle             = $bundleResult
+                    #IsCommitted = $commitResult
+                    #IsLineOfBusiness = $lineofbusinessResult
+                    IsSuperseded         = $supersededResult
+                }
+                if ($apptypeResult -eq "Win32 Line of Business App") {
+                    $obj | Add-Member -MemberType NoteProperty -Name "Information" -Value $a.information
+                    $obj | Add-Member -MemberType NoteProperty -Name "InstallCommandLine" -Value $a.installCommandLine
+                    $obj | Add-Member -MemberType NoteProperty -Name "UninstallCommandLine" -Value $a.uninstallCommandLine
+                    $obj | Add-Member -MemberType NoteProperty -Name "DetectionType" -Value $a.detectionType
+                    $obj | Add-Member -MemberType NoteProperty -Name "DetectionValue" -Value $a.detectionValue
+                    $obj | Add-Member -MemberType NoteProperty -Name "ReturnCode" -Value $a.returnCode
+                    $obj | Add-Member -MemberType NoteProperty -Name "ProductCode" -Value $a.productCode
+                    $obj | Add-Member -MemberType NoteProperty -Name "IgnoreVersionDetection" -Value $a.ignoreVersionDetection
+                    $obj | Add-Member -MemberType NoteProperty -Name "RestartBehavior" -Value $a.restartBehavior
+                    $obj | Add-Member -MemberType NoteProperty -Name "RunAsAccount" -Value $a.runAsAccount
+                    $obj | Add-Member -MemberType NoteProperty -Name "RunAs32Bit" -Value $a.runAs32Bit
+                    $obj | Add-Member -MemberType NoteProperty -Name "MinimumSupportedOperatingSystem" -Value $a.minimumSupportedOperatingSystem
+                    $obj | Add-Member -MemberType NoteProperty -Name "RequirementRules" -Value $a.requirementRules
+                    $obj | Add-Member -MemberType NoteProperty -Name "InstallExperience" -Value $a.installExperience
+                    $obj | Add-Member -MemberType NoteProperty -Name "LogCollectionOff" -Value $a.logCollectionOff
+                    $obj | Add-Member -MemberType NoteProperty -Name "UninstallExperience" -Value $a.uninstallExperience
+                    $obj | Add-Member -MemberType NoteProperty -Name "ApplicableArchitectures" -Value $a.applicableArchitectures
+                    $obj | Add-Member -MemberType NoteProperty -Name "MinimumCpuSpeedInMHz" -Value $a.minimumCpu
+                }
+                if ($apptypeResult -eq "Windows Universal AppX") {
+                    $obj | Add-Member -MemberType NoteProperty -Name "IdentityPublisherHash" -Value $a.identityPublisherHash
+                    $obj | Add-Member -MemberType NoteProperty -Name "IdentityResourceIdentifier" -Value $a.identityResourceIdentifier
+                }
+                return $obj
+            }
         }
-        }
-        
-}
+    }
 }
 
 #For review - This is a work in progress. This function updates specifically IntuneW32LOB apps.
